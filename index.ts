@@ -3,7 +3,9 @@ dotenv.config();
 
 import express from "express";
 import cors from "cors";
+import upload from "./config/upload";
 import "./config/db";
+import { AuthController } from "./controllers";
 
 const app = express();
 
@@ -13,9 +15,9 @@ app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("Hello World!");
-});
+//Auth
+app.post("/check-email", AuthController.checkEmailExistence);
+app.post("/create-user", upload.single("avatar"), AuthController.createUser);
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}`);
