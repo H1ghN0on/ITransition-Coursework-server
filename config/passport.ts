@@ -1,7 +1,16 @@
 import passport from "passport";
 import { Strategy as VKStrategy } from "passport-vkontakte";
+import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
 
-const { User } = require("../models");
+const opts = {
+  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+  secretOrKey: process.env.JWT_SECRET_KEY,
+};
+passport.use(
+  new JwtStrategy(opts, (jwt_payload: any, done: any) => {
+    done(null, jwt_payload);
+  })
+);
 
 passport.use(
   "vk",

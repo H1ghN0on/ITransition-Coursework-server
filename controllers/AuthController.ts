@@ -2,7 +2,7 @@ import express from "express";
 import sharp from "sharp";
 import path from "path";
 import fs from "fs";
-
+import createJWToken from "../utils/createJWToken";
 const { User } = require("../models");
 
 const createErrorMessage = (status: "OK" | "Error", message: string) => ({
@@ -59,7 +59,12 @@ const addUserToDB = async (userInfo: {
       email,
     });
     if (user) {
-      return { status: "OK", user };
+      const token = createJWToken(user);
+      const userData = {
+        ...user.dataValues,
+        token,
+      };
+      return { status: "OK", userData };
     } else {
       return createErrorMessage(
         "Error",
@@ -76,6 +81,9 @@ const addUserToDB = async (userInfo: {
 };
 
 class AuthController {
+  getMe(req: express.Request, res: express.Response) {
+    res.json(req.user);
+  }
   async createUser(req: express.Request, res: express.Response) {
     const avatar = req.file;
     const { email, password, username } = req.body;
@@ -113,7 +121,12 @@ class AuthController {
       if (!user) {
         res.send(createErrorMessage("Error", "This user is not registered"));
       } else {
-        res.send({ status: "OK", user });
+        const token = createJWToken(user);
+        const userData = {
+          ...user.dataValues,
+          token,
+        };
+        res.send({ status: "OK", userData });
       }
     } catch (error) {
       console.log(error);
@@ -137,10 +150,14 @@ class AuthController {
         };
         user = await User.create(userData);
       }
-
+      const token = createJWToken(user);
+      const userData = {
+        ...user.dataValues,
+        token,
+      };
       res.send(
         `<script>window.opener.postMessage('${JSON.stringify(
-          req.user
+          userData
         )}', "*");window.close()</script>`
       );
     }

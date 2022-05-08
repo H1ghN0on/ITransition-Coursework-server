@@ -26,6 +26,11 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 //Auth
+app.get(
+  "/auth/me",
+  passport.authenticate("jwt", { session: false }),
+  AuthController.getMe
+);
 app.post("/check-email", AuthController.checkEmailExistence);
 app.post("/create-user", upload.single("avatar"), AuthController.createUser);
 app.post("/login", AuthController.login);
