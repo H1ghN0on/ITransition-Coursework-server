@@ -102,6 +102,49 @@ class AuthController {
     const status = await getUserByEmail(req.body.email);
     res.send(status);
   }
+
+  async login(req: express.Request, res: express.Response) {
+    const { email, password } = req.body;
+    try {
+      const user = await User.findOne({
+        where: { email: email, password: password },
+      });
+
+      if (!user) {
+        res.send(createErrorMessage("Error", "This user is not registered"));
+      } else {
+        res.send({ status: "OK", user });
+      }
+    } catch (error) {
+      console.log(error);
+      res.send(createErrorMessage("Error", "Database error occured"));
+    }
+  }
+
+  async vkAuth(req: express.Request, res: express.Response) {
+    if (req.user) {
+      const vk_user = req.user as any;
+      let user = await User.findOne({
+        where: { vkID: vk_user.id.toString() },
+      });
+
+      if (!user) {
+        const userData = {
+          vkID: vk_user.id.toString(),
+          username: vk_user.username,
+          avatarURL: vk_user.photos ? vk_user.photos[0].value : "default.jpeg",
+          email: vk_user.emails ? vk_user.emails[0].value : "",
+        };
+        user = await User.create(userData);
+      }
+
+      res.send(
+        `<script>window.opener.postMessage('${JSON.stringify(
+          req.user
+        )}', "*");window.close()</script>`
+      );
+    }
+  }
 }
 
 export default new AuthController();
