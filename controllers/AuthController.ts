@@ -1,14 +1,6 @@
 import express from "express";
-import sharp from "sharp";
-import path from "path";
-import fs from "fs";
-import createJWToken from "../utils/createJWToken";
+import { createErrorMessage, createJWToken, sharpImage } from "../utils";
 const { User } = require("../models");
-
-const createErrorMessage = (status: "OK" | "Error", message: string) => ({
-  status,
-  message,
-});
 
 const getUserByEmail = async (email: string) => {
   let user = await User.findOne({ where: { email: email } });
@@ -30,18 +22,6 @@ const getUserByUsername = async (username: string) => {
     );
   }
   return { status: "OK" };
-};
-
-const sharpImage = async (img: Express.Multer.File) => {
-  const newFileName =
-    "another-" +
-    img.filename.split(".").splice(0, 1).concat([".jpeg"]).join("");
-  await sharp(img.path)
-    .resize(150, 150)
-    .toFormat("jpeg")
-    .toFile(path.resolve(img.destination, newFileName));
-  fs.unlinkSync(path.resolve(img.destination, img.filename));
-  return newFileName;
 };
 
 const addUserToDB = async (userInfo: {

@@ -8,6 +8,7 @@ import session from "express-session";
 import "./config/db";
 import { AuthController } from "./controllers";
 import { passport } from "./config/passport";
+import CollectionController from "./controllers/CollectionController";
 
 const app = express();
 
@@ -42,6 +43,16 @@ app.get(
   }),
   AuthController.vkAuth
 );
+
+//Collections
+
+app.post(
+  "/create-collection",
+  passport.authenticate("jwt", { session: false }),
+  upload.single("avatar"),
+  CollectionController.create
+);
+app.get("/get-collections/:id", CollectionController.getAll);
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}`);
