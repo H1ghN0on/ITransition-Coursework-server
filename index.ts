@@ -53,6 +53,17 @@ app.post(
   CollectionController.create
 );
 app.get("/get-collections/:id", CollectionController.getAll);
+app.post(
+  "/edit-collection/:id",
+  passport.authenticate("jwt", { session: false }),
+  upload.single("avatar"),
+  CollectionController.edit
+);
+app.delete(
+  "/delete-collection/:id",
+  passport.authenticate("jwt", { session: false }),
+  CollectionController.delete
+);
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}`);

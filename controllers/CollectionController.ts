@@ -38,6 +38,7 @@ class CollectionController {
     try {
       const id = req.params.id;
       const collections = await Collection.findAll({
+        order: [["id", "ASC"]],
         where: { belongsTo: id },
       });
 
@@ -47,6 +48,64 @@ class CollectionController {
       res
         .status(500)
         .send(createErrorMessage("Error", "Database Error occured"));
+    }
+  }
+
+  async delete(req: express.Request, res: express.Response) {
+    const user = req.user as any;
+    if (user) {
+      try {
+        const id = req.params.id;
+        await Collection.destroy({
+          where: { id },
+        });
+
+        res.send({ status: "OK" });
+      } catch (error) {
+        console.log(error);
+        res
+          .status(500)
+          .send(createErrorMessage("Error", "Database Error occured"));
+      }
+    } else {
+      res.status(401).send(createErrorMessage("Error", "Unauthorized"));
+    }
+  }
+
+  async edit(req: express.Request, res: express.Response) {
+    const user = req.user as any;
+    if (user) {
+      try {
+        const id = req.params.id;
+        const { name, description, topics } = req.body;
+        const avatarURL = req.file && (await sharpImage(req.file));
+
+        let collectionData: any = {
+          name,
+          description,
+          topics: JSON.parse(topics),
+        };
+        if (avatarURL) {
+          collectionData.avatarURL = avatarURL;
+        }
+
+        const collection = await Collection.findOne({
+          where: {
+            id,
+          },
+        });
+        await collection.update(collectionData);
+        await collection.save();
+
+        res.send({ status: "OK", collection });
+      } catch (error) {
+        console.log(error);
+        res
+          .status(500)
+          .send(createErrorMessage("Error", "Database Error occured"));
+      }
+    } else {
+      res.status(401).send(createErrorMessage("Error", "Unauthorized"));
     }
   }
 }
