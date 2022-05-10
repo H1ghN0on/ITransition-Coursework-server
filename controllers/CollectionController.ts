@@ -51,6 +51,22 @@ class CollectionController {
     }
   }
 
+  async getTop(req: express.Request, res: express.Response) {
+    try {
+      const collections = await Collection.findAll({
+        order: [["items", "DESC"]],
+        limit: 10,
+      });
+
+      res.send({ status: "OK", collections });
+    } catch (error) {
+      console.log(error);
+      res
+        .status(500)
+        .send(createErrorMessage("Error", "Database Error occured"));
+    }
+  }
+
   async delete(req: express.Request, res: express.Response) {
     const user = req.user as any;
     if (user) {

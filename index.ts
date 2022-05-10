@@ -6,9 +6,12 @@ import cors from "cors";
 import upload from "./config/upload";
 import session from "express-session";
 import "./config/db";
-import { AuthController } from "./controllers";
+import {
+  AuthController,
+  CollectionController,
+  ItemController,
+} from "./controllers";
 import { passport } from "./config/passport";
-import CollectionController from "./controllers/CollectionController";
 
 const app = express();
 
@@ -53,6 +56,8 @@ app.post(
   CollectionController.create
 );
 app.get("/get-collections/:id", CollectionController.getAll);
+app.get("/get-top-collections", CollectionController.getTop);
+
 app.post(
   "/edit-collection/:id",
   passport.authenticate("jwt", { session: false }),
@@ -64,6 +69,38 @@ app.delete(
   passport.authenticate("jwt", { session: false }),
   CollectionController.delete
 );
+
+//Items
+app.post(
+  "/create-item",
+  passport.authenticate("jwt", { session: false }),
+  ItemController.create
+);
+
+app.post(
+  "/edit-item",
+  passport.authenticate("jwt", { session: false }),
+  ItemController.edit
+);
+app.delete(
+  "/delete-item/:id",
+  passport.authenticate("jwt", { session: false }),
+  ItemController.delete
+);
+
+app.post(
+  "/create-column",
+  passport.authenticate("jwt", { session: false }),
+  ItemController.createColumn
+);
+
+app.post(
+  "/delete-column",
+  passport.authenticate("jwt", { session: false }),
+  ItemController.deleteColumn
+);
+
+app.get("/get-items/:id", ItemController.getAllFromCollection);
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}`);
