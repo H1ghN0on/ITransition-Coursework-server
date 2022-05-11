@@ -367,7 +367,6 @@ class ItemController {
 
       res.send({
         status: "OK",
-
         item: {
           ...dbItem.dataValues,
           info,

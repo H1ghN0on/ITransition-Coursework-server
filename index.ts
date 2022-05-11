@@ -9,11 +9,16 @@ import "./config/db";
 import {
   AuthController,
   CollectionController,
+  CommentController,
   ItemController,
 } from "./controllers";
 import { passport } from "./config/passport";
 
 const app = express();
+
+const server = require("http").Server(app);
+
+const io = require("socket.io")(server, { cors: { origin: "*" } });
 
 const PORT = process.env.PORT || 3001;
 
@@ -105,6 +110,39 @@ app.get("/get-item/:id", ItemController.getById);
 
 app.get("/get-collection-data/:id", ItemController.getAllFromCollection);
 
-app.listen(PORT, () => {
+//Comments
+
+app.post(
+  "/create-comment",
+  passport.authenticate("jwt", { session: false }),
+  CommentController.create
+);
+
+app.get("/get-comments/:id", CommentController.ofItem);
+
+const rooms = new Map();
+
+io.on("connection", (socket: any) => {
+  socket.on("connected", (itemId: any) => {
+    if (!rooms.has(itemId)) {
+      rooms.set(itemId, []);
+    }
+    rooms.get(itemId).push(socket.id);
+  });
+
+  socket.on("send-comment", (comment: any) => {
+    rooms.get(comment.comment.item_id.toString()).forEach((user: any) => {
+      socket.to(user).emit("new-comment", {
+        comment: comment,
+      });
+    });
+  });
+
+  socket.on("disconnected", (itemId: any) => {
+    rooms.get(itemId).filter((id: any) => id !== socket.id);
+  });
+});
+
+server.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}`);
 });
