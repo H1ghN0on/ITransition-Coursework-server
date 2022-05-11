@@ -56,6 +56,7 @@ app.post(
   CollectionController.create
 );
 app.get("/get-collections/:id", CollectionController.getAll);
+app.get("/get-collection/:id", CollectionController.getOne);
 app.get("/get-top-collections", CollectionController.getTop);
 
 app.post(
@@ -100,7 +101,7 @@ app.post(
   ItemController.deleteColumn
 );
 
-app.get("/get-items/:id", ItemController.getAllFromCollection);
+app.get("/get-collection-data/:id", ItemController.getAllFromCollection);
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}`);

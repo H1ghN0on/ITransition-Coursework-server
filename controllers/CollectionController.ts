@@ -124,6 +124,22 @@ class CollectionController {
       res.status(401).send(createErrorMessage("Error", "Unauthorized"));
     }
   }
+
+  async getOne(req: express.Request, res: express.Response) {
+    const id = req.params.id;
+    try {
+      const collection = await Collection.findOne({
+        where: { id },
+      });
+
+      res.send({ status: "OK", collection });
+    } catch (error) {
+      console.log(error);
+      res
+        .status(500)
+        .send(createErrorMessage("Error", "Database Error occured"));
+    }
+  }
 }
 
 export default new CollectionController();

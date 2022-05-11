@@ -1,7 +1,12 @@
 import express from "express";
 import { createErrorMessage } from "../utils";
 
-const { Item, ItemAttribute, ItemAttributeValue } = require("../models");
+const {
+  Item,
+  ItemAttribute,
+  ItemAttributeValue,
+  Collection,
+} = require("../models");
 
 interface ItemAttributeInfo {
   type: "checkbox" | "string" | "date" | "number" | "text";
@@ -17,6 +22,7 @@ const getItemAttribute = async (el: ItemAttributeInfo) => {
       type: el.type,
     },
   });
+
   if (!itemAttribute) {
     itemAttribute = await addItemAttribute(el.name, el.type, el.accessor);
   }
@@ -36,17 +42,34 @@ const addItemAttribute = async (
   return itemAttribute;
 };
 
-const removeItemAttribute = async (accessor: string, type: string) => {
+const removeItemAttribute = async (
+  items: any,
+  accessor: string,
+  type: string
+) => {
   const itemAttribute = await ItemAttribute.findOne({
     where: { accessor, type },
   });
+  const itemIds = items.map((obj: any) => obj.id);
 
   if (itemAttribute) {
-    const itemAttributeValue = await ItemAttributeValue.findOne({
+    const itemAttributeValues = await ItemAttributeValue.findAll({
       where: { attribute_id: itemAttribute.id },
     });
-    if (!itemAttributeValue) {
+    let length = itemAttributeValues.length;
+    console.log(itemIds);
+    console.log(length);
+    for (let value of itemAttributeValues) {
+      if (itemIds.includes(value.item_id)) {
+        await value.destroy();
+        await value.save();
+        length--;
+      }
+    }
+
+    if (!itemAttributeValues || length == 0) {
       await itemAttribute.destroy();
+      await itemAttribute.save();
     }
   }
 };
@@ -58,12 +81,16 @@ const addToItemAttributeValues = async (
   let itemAttributeValues: any = [];
   for (let el of info) {
     const itemAttribute = await getItemAttribute(el);
-    const itemAttributeValue = await ItemAttributeValue.create({
+
+    await ItemAttributeValue.create({
       [el.type]: el.value,
       item_id,
       attribute_id: itemAttribute.id,
     });
-    itemAttributeValues.push({ itemAttributeValue });
+    itemAttributeValues.push({
+      accessor: itemAttribute.accessor,
+      value: el.value,
+    });
   }
   return itemAttributeValues;
 };
@@ -85,7 +112,10 @@ const editItemAttributeValue = async (
       [el.type]: el.value,
     });
     await itemAttributeValue.save();
-    itemAttributeValues.push({ itemAttributeValue });
+    itemAttributeValues.push({
+      accessor: itemAttribute.accessor,
+      value: el.value,
+    });
   }
   return itemAttributeValues;
 };
@@ -100,17 +130,19 @@ const deleteItemAttributeValues = async (item_id: number) => {
 
 const getCorrectValues = async (values: any) => {
   let finalValues: any = [];
+  let finalAttrs: any = [];
   for (let value of values) {
     const { attribute_id } = value;
     const attr = await ItemAttribute.findOne({
       where: { id: attribute_id },
     });
     finalValues.push({
-      name: attr.dataValues.name,
+      accessor: attr.dataValues.accessor,
       value: value[attr.type],
     });
+    finalAttrs.push(attr.dataValues);
   }
-  return [finalValues];
+  return { values: finalValues, columns: finalAttrs };
 };
 
 class ItemController {
@@ -122,36 +154,25 @@ class ItemController {
     }
     try {
       const { collectionId, name, tags, info } = req.body;
-
-      // const testInfo: ItemAttributeInfo[] = [
-      //   {
-      //     type: "checkbox",
-      //     name: "True",
-      //     accessor: "true",
-      //     value: false,
-      //   },
-      //   {
-      //     type: "string",
-      //     name: "Memes",
-      //     value: "Noooo",
-      //     accessor: "memes",
-      //   },
-      //   {
-      //     type: "text",
-      //     name: "About",
-      //     accessor: "about",
-      //     value:
-      //       "Chiaki nanami is the best girl Chiaki nanami is the best girl Chiaki nanami is the best girl",
-      //   },
-      // ];
       const item = await Item.create({ name, tags, belongsTo: collectionId });
-
+      const collection = await Collection.findOne({
+        where: { id: collectionId },
+      });
+      await collection.update({ items: collection.items + 1 });
+      await collection.save();
       const itemAttributeValues = await addToItemAttributeValues(item.id, info);
       res.send({
         status: "OK",
         item: {
-          ...item,
-          ...itemAttributeValues,
+          id: item.id,
+          name,
+          tags,
+          ...Object.assign(
+            {},
+            ...itemAttributeValues.map((value: any) => ({
+              [value.accessor]: value.value.toString(),
+            }))
+          ),
         },
       });
     } catch (error) {
@@ -171,23 +192,36 @@ class ItemController {
         order: [["id", "ASC"]],
       });
       let items: any = [];
+      let finalColumns: any[] = [];
       for (let item of dbItems) {
         const { id } = item;
         const dbValues = await ItemAttributeValue.findAll({
           where: { item_id: id },
         });
-        const values = await getCorrectValues(dbValues);
+        const { values, columns } = await getCorrectValues(dbValues);
+        finalColumns = finalColumns.concat(columns);
+
         items.push({
           id: item.id,
-          values: values,
+          ...Object.assign(
+            {},
+            ...values.map((value: any) => ({
+              [value.accessor]: value.value.toString(),
+            }))
+          ),
           name: item.name,
           tags: item.tags,
           belongsTo: item.belongsTo,
+          createdAt: item.createdAt,
         });
       }
 
+      const columns = [
+        ...new Map(finalColumns.map((item) => [item["id"], item])).values(),
+      ];
       res.send({
         status: "OK",
+        columns,
         items,
       });
     } catch (error) {
@@ -206,13 +240,22 @@ class ItemController {
     }
     try {
       const { id, name, tags, info } = req.body;
-      const item = await Item.update({ name, tags }, { where: { id } });
+      const item = await Item.findOne({ where: { id } });
+      await item.update({ name, tags });
+      await item.save();
       const itemAttributeValues = await editItemAttributeValue(id, info);
       res.send({
         status: "OK",
         item: {
-          ...item,
-          ...itemAttributeValues,
+          id,
+          name,
+          tags,
+          ...Object.assign(
+            {},
+            ...itemAttributeValues.map((value: any) => ({
+              [value.accessor]: value.value.toString(),
+            }))
+          ),
         },
       });
     } catch (error) {
@@ -235,6 +278,11 @@ class ItemController {
       if (item) {
         await item.destroy();
       }
+      const collection = await Collection.findOne({
+        where: { id: item.belongsTo },
+      });
+      await collection.update({ items: collection.items - 1 });
+      await collection.save();
       await deleteItemAttributeValues(+id);
       res.send({
         status: "OK",
@@ -253,8 +301,20 @@ class ItemController {
       return;
     }
     try {
-      const { name, accessor, type } = req.body;
+      const { collectionId, name, accessor, type, initValue } = req.body;
       await addItemAttribute(name, type, accessor);
+
+      const items = await Item.findAll({ where: { belongsTo: collectionId } });
+      for (let item of items) {
+        const obj = {
+          type,
+          value: initValue,
+          accessor,
+          name,
+        };
+        await addToItemAttributeValues(item.id, [obj]);
+      }
+
       res.send({ status: "OK" });
     } catch (error) {
       console.log(error);
@@ -270,8 +330,12 @@ class ItemController {
       return;
     }
     try {
-      const { accessor, type } = req.body;
-      await removeItemAttribute(accessor, type);
+      const { collectionId, accessor, type } = req.body;
+      const items = await Item.findAll({
+        where: { belongsTo: collectionId },
+      });
+
+      await removeItemAttribute(items, accessor, type);
       res.send({ status: "OK" });
     } catch (error) {
       console.log(error);
