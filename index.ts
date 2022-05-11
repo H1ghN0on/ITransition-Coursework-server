@@ -101,6 +101,8 @@ app.post(
   ItemController.deleteColumn
 );
 
+app.get("/get-item/:id", ItemController.getById);
+
 app.get("/get-collection-data/:id", ItemController.getAllFromCollection);
 
 app.listen(PORT, () => {

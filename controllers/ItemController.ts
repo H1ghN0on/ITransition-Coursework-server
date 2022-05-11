@@ -1,5 +1,5 @@
 import express from "express";
-import { createErrorMessage } from "../utils";
+import { createErrorMessage, merge } from "../utils";
 
 const {
   Item,
@@ -337,6 +337,43 @@ class ItemController {
 
       await removeItemAttribute(items, accessor, type);
       res.send({ status: "OK" });
+    } catch (error) {
+      console.log(error);
+      res
+        .status(500)
+        .send(createErrorMessage("Error", "Database Error occured"));
+    }
+  }
+
+  async getById(req: express.Request, res: express.Response) {
+    try {
+      const id = req.params.id;
+
+      const dbItem = await Item.findOne({
+        where: { id },
+      });
+
+      const collection = await Collection.findOne({
+        where: { id: dbItem.belongsTo },
+      });
+
+      const dbItemValues = await ItemAttributeValue.findAll({
+        where: { item_id: id },
+      });
+
+      const { columns, values } = await getCorrectValues(dbItemValues);
+
+      const info = merge(columns, values);
+
+      res.send({
+        status: "OK",
+
+        item: {
+          ...dbItem.dataValues,
+          info,
+          belongsTo: collection.dataValues.name,
+        },
+      });
     } catch (error) {
       console.log(error);
       res

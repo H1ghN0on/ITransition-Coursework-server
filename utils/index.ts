@@ -37,3 +37,7 @@ export const sharpImage = async (img: Express.Multer.File) => {
   fs.unlinkSync(path.resolve(img.destination, img.filename));
   return newFileName;
 };
+
+export const merge = (arr1: any[], arr2: any[]) => {
+  return arr1.map((value: any, index) => ({ ...value, ...arr2[index] }));
+};
