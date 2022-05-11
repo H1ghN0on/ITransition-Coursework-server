@@ -11,6 +11,7 @@ import {
   CollectionController,
   CommentController,
   ItemController,
+  LikeController,
 } from "./controllers";
 import { passport } from "./config/passport";
 
@@ -119,6 +120,13 @@ app.post(
 );
 
 app.get("/get-comments/:id", CommentController.ofItem);
+
+//Likes
+app.post(
+  "/set-like",
+  passport.authenticate("jwt", { session: false }),
+  LikeController.setLike
+);
 
 const rooms = new Map();
 

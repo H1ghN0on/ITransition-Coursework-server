@@ -6,6 +6,7 @@ const {
   ItemAttribute,
   ItemAttributeValue,
   Collection,
+  Like,
 } = require("../models");
 
 interface ItemAttributeInfo {
@@ -362,7 +363,7 @@ class ItemController {
       });
 
       const { columns, values } = await getCorrectValues(dbItemValues);
-
+      const likes = await Like.findAll({ where: { item_id: id } });
       const info = merge(columns, values);
 
       res.send({
@@ -371,6 +372,7 @@ class ItemController {
           ...dbItem.dataValues,
           info,
           belongsTo: collection.dataValues.name,
+          likes,
         },
       });
     } catch (error) {
