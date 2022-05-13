@@ -131,6 +131,8 @@ app.post(
 
 //Search
 app.get("/search/:query", SearchController.search);
+app.get("/search-by-tag/:query", SearchController.searchByTag);
+app.get("/count-tags", SearchController.countTags);
 
 const rooms = new Map();
 
