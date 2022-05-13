@@ -1,9 +1,9 @@
 import express from "express";
-import { use } from "passport";
+import sequelize from "Sequelize";
 import { createErrorMessage } from "../utils";
 
 const { Comment, User } = require("../models");
-
+import toTsvector from "to-tsvector";
 class CommentController {
   async create(req: express.Request, res: express.Response) {
     const user = req.user as any;
@@ -13,10 +13,12 @@ class CommentController {
     }
     try {
       const { item_id, text } = req.body;
+      console.log(text);
       const comment = await Comment.create({
         item_id,
         text,
         user_id: user.data.id,
+        textField: toTsvector(text),
       });
 
       const sender = await User.findOne({ where: { id: user.data.id } });

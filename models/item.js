@@ -16,6 +16,7 @@ module.exports = (sequelize, DataTypes) => {
       name: DataTypes.STRING,
       belongsTo: DataTypes.INTEGER,
       tags: DataTypes.ARRAY(DataTypes.STRING),
+      textField: DataTypes.TSVECTOR,
     },
     {
       sequelize,

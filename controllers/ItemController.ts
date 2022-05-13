@@ -1,4 +1,5 @@
 import express from "express";
+import toTsvector from "to-tsvector";
 import { createErrorMessage, merge } from "../utils";
 
 const {
@@ -87,6 +88,7 @@ const addToItemAttributeValues = async (
       [el.type]: el.value,
       item_id,
       attribute_id: itemAttribute.id,
+      textField: toTsvector(el.value),
     });
     itemAttributeValues.push({
       accessor: itemAttribute.accessor,
@@ -111,6 +113,7 @@ const editItemAttributeValue = async (
     });
     await itemAttributeValue.update({
       [el.type]: el.value,
+      textField: toTsvector(el.value),
     });
     await itemAttributeValue.save();
     itemAttributeValues.push({
@@ -155,7 +158,12 @@ class ItemController {
     }
     try {
       const { collectionId, name, tags, info } = req.body;
-      const item = await Item.create({ name, tags, belongsTo: collectionId });
+      const item = await Item.create({
+        name,
+        tags,
+        belongsTo: collectionId,
+        textField: toTsvector(name),
+      });
       const collection = await Collection.findOne({
         where: { id: collectionId },
       });
@@ -242,7 +250,7 @@ class ItemController {
     try {
       const { id, name, tags, info } = req.body;
       const item = await Item.findOne({ where: { id } });
-      await item.update({ name, tags });
+      await item.update({ name, tags, textField: toTsvector(name) });
       await item.save();
       const itemAttributeValues = await editItemAttributeValue(id, info);
       res.send({

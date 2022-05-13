@@ -12,6 +12,7 @@ import {
   CommentController,
   ItemController,
   LikeController,
+  SearchController,
 } from "./controllers";
 import { passport } from "./config/passport";
 
@@ -127,6 +128,9 @@ app.post(
   passport.authenticate("jwt", { session: false }),
   LikeController.setLike
 );
+
+//Search
+app.get("/search/:query", SearchController.search);
 
 const rooms = new Map();
 

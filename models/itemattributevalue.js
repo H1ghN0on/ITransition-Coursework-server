@@ -20,6 +20,7 @@ module.exports = (sequelize, DataTypes) => {
       checkbox: DataTypes.BOOLEAN,
       date: DataTypes.DATE,
       number: DataTypes.INTEGER,
+      textField: DataTypes.TSVECTOR,
     },
     {
       sequelize,

@@ -28,6 +28,7 @@
     "sequelize": "^6.19.0",
     "sharp": "^0.30.4",
     "socket.io": "^4.5.0",
+    "to-tsvector": "^1.0.1",
     "ts-node": "^10.7.0",
     "ts-node-dev": "^1.1.8",
     "typescript": "^4.6.4"
