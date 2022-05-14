@@ -1,17 +1,22 @@
 import express from "express";
+import { deleteFile } from "../config/aws";
 import { createErrorMessage, sharpImage } from "../utils";
+import { upload } from "../utils";
 
 const { Collection } = require("../models");
 
+const AWS_DESTINATION = "avatars/collections/";
 class CollectionController {
   async create(req: express.Request, res: express.Response) {
     const user = req.user as any;
     if (user) {
       try {
         const { name, description, topics } = req.body;
-        const avatarURL = req.file
-          ? await sharpImage(req.file)
-          : "default.jpeg";
+        let avatarURL = "default.jpeg";
+        if (req.file) {
+          avatarURL = await sharpImage(req.file);
+          await upload(avatarURL, req.file.destination, AWS_DESTINATION);
+        }
         const collectionData = {
           name,
           description,
@@ -94,22 +99,23 @@ class CollectionController {
       try {
         const id = req.params.id;
         const { name, description, topics } = req.body;
-        const avatarURL = req.file && (await sharpImage(req.file));
-
-        let collectionData: any = {
-          name,
-          description,
-          topics: JSON.parse(topics),
-        };
-        if (avatarURL) {
-          collectionData.avatarURL = avatarURL;
-        }
-
         const collection = await Collection.findOne({
           where: {
             id,
           },
         });
+        let collectionData: any = {
+          name,
+          description,
+          topics: JSON.parse(topics),
+        };
+        if (req.file) {
+          await deleteFile(AWS_DESTINATION + collection.avatarURL);
+          const avatarURL = await sharpImage(req.file);
+          await upload(avatarURL, req.file.destination, AWS_DESTINATION);
+          collectionData.avatarURL = avatarURL;
+        }
+
         await collection.update(collectionData);
         await collection.save();
 

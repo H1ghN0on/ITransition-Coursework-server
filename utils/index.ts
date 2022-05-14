@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import sharp from "sharp";
 import path from "path";
 import fs from "fs";
+import { uploadFile } from "../config/aws";
 
 export const createJWToken = (user: any): string => {
   const token = jwt.sign(
@@ -34,10 +35,22 @@ export const sharpImage = async (img: Express.Multer.File) => {
     .resize(150, 150)
     .toFormat("jpeg")
     .toFile(path.resolve(img.destination, newFileName));
+  console.log(path.resolve(img.destination, img.filename));
   fs.unlinkSync(path.resolve(img.destination, img.filename));
   return newFileName;
 };
 
 export const merge = (arr1: any[], arr2: any[]) => {
   return arr1.map((value: any, index) => ({ ...value, ...arr2[index] }));
+};
+
+export const upload = async (
+  filename: string,
+  destination: string,
+  newDestination: string
+) => {
+  const filePath = path.resolve(destination, filename);
+
+  await uploadFile(filePath, newDestination + filename);
+  fs.unlinkSync(filePath);
 };

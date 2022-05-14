@@ -13,6 +13,7 @@ import {
   ItemController,
   LikeController,
   SearchController,
+  UserController,
 } from "./controllers";
 import { passport } from "./config/passport";
 
@@ -133,6 +134,11 @@ app.post(
 app.get("/search/:query", SearchController.search);
 app.get("/search-by-tag/:query", SearchController.searchByTag);
 app.get("/count-tags", SearchController.countTags);
+
+//Users
+app.get("/get-users", UserController.getAll);
+app.get("/set-user-status/:id/:status/", UserController.setStatus);
+app.delete("/delete-user/:id", UserController.delete);
 
 const rooms = new Map();
 

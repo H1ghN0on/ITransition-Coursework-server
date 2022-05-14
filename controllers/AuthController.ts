@@ -1,6 +1,13 @@
 import express from "express";
-import { createErrorMessage, createJWToken, sharpImage } from "../utils";
+import {
+  createErrorMessage,
+  createJWToken,
+  sharpImage,
+  upload,
+} from "../utils";
 const { User } = require("../models");
+
+const AWS_DESTINATION = "avatars/users/";
 
 const getUserByEmail = async (email: string) => {
   let user = await User.findOne({ where: { email: email } });
@@ -72,6 +79,8 @@ class AuthController {
       let avatarURL = "default.jpeg";
       if (avatar) {
         avatarURL = await sharpImage(avatar);
+
+        await upload(avatarURL, avatar.destination, AWS_DESTINATION);
       }
       const addUserStatus = await addUserToDB({
         avatarURL,
