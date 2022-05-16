@@ -18,7 +18,8 @@ passport.use(
     {
       clientID: process.env.VK_APP_ID as string,
       clientSecret: process.env.VK_APP_SECRET as string,
-      callbackURL: "http://localhost:3001/auth/vk/callback",
+      callbackURL:
+        "https://it-coursework-server.herokuapp.com/auth/vk/callback",
     },
     async (accessToken, refreshToken, params, profile, done) => {
       return done(null, profile);
