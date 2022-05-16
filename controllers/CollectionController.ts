@@ -149,7 +149,7 @@ class CollectionController {
         };
 
         if (req.file) {
-          if (collectionData.avatarURL !== "default.jpeg") {
+          if (collection.avatarURL !== "default.jpeg") {
             await deleteFile(AWS_DESTINATION + collection.avatarURL);
           }
           const avatarURL = await sharpImage(req.file);
