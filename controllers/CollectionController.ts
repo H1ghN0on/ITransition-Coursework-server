@@ -30,6 +30,13 @@ class CollectionController {
         const user = await User.findOne({
           where: { id: collection.belongsTo },
         });
+
+        const params = {
+          Bucket: "itransition-coursework",
+          Key: "avatars/collections/" + collection.avatarURL,
+        };
+        var promise = await s3.getSignedUrlPromise("getObject", params);
+        collection.dataValues.avatarURL = promise;
         collection.dataValues.belongsTo = user;
         res.send({ status: "OK", collection });
       } catch (error) {
