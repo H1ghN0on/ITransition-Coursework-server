@@ -147,8 +147,11 @@ class CollectionController {
           description,
           topics: JSON.parse(topics),
         };
+
         if (req.file) {
-          await deleteFile(AWS_DESTINATION + collection.avatarURL);
+          if (collectionData.avatarURL !== "default.jpeg") {
+            await deleteFile(AWS_DESTINATION + collection.avatarURL);
+          }
           const avatarURL = await sharpImage(req.file);
           await upload(avatarURL, req.file.destination, AWS_DESTINATION);
           collectionData.avatarURL = avatarURL;
