@@ -86,6 +86,8 @@ app.post(
   ItemController.create
 );
 
+app.get("/get-last-added", ItemController.getLastAdded);
+
 app.post(
   "/edit-item",
   passport.authenticate("jwt", { session: false }),
@@ -137,13 +139,27 @@ app.get("/count-tags", SearchController.countTags);
 
 //Users
 app.get("/get-users", UserController.getAll);
+app.get("/get-user/:id", UserController.getById);
 app.get("/set-user-status/:id/:status/", UserController.setStatus);
 app.delete("/delete-user/:id", UserController.delete);
 
+const users = new Map();
 const rooms = new Map();
 
 io.on("connection", (socket: any) => {
-  socket.on("connected", (itemId: any) => {
+  socket.on("connected", (id: number) => {
+    if (id && id !== -1) {
+      users.set(id, socket.id);
+    }
+  });
+  socket.on("status-change", (id: number, status: string) => {
+    console.log(users);
+    if (users.has(id)) {
+      socket.to(users.get(id)).emit("status-changed", { status });
+    }
+  });
+
+  socket.on("connected-to-item", (itemId: any) => {
     if (!rooms.has(itemId)) {
       rooms.set(itemId, []);
     }

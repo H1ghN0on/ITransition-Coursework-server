@@ -2,7 +2,7 @@ import AWS from "aws-sdk";
 import fs from "fs";
 import path from "path";
 
-const s3 = new AWS.S3({
+export const s3 = new AWS.S3({
   accessKeyId: process.env.AWS_ID,
   secretAccessKey: process.env.AWS_SECRET,
 });

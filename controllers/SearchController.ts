@@ -2,7 +2,7 @@ import express from "express";
 import sequelize, { Op } from "sequelize";
 import { createErrorMessage } from "../utils";
 
-const { Item, Comment, ItemAttributeValue } = require("../models");
+const { Item, Comment, ItemAttributeValue, Collection } = require("../models");
 
 const findAllReferences = async (query: string) => {
   const itemAttributeValues = await ItemAttributeValue.findAll({
@@ -45,6 +45,12 @@ class SearchController {
           ],
         },
       });
+      for (let item of items) {
+        const collection = await Collection.findOne({
+          where: { id: item.belongsTo },
+        });
+        item.dataValues.belongsTo = collection;
+      }
       res.send({ items });
     } catch (error) {
       console.log(error);
@@ -62,6 +68,13 @@ class SearchController {
           tags: { [Op.contains]: [query] },
         },
       });
+      for (let item of items) {
+        const collection = await Collection.findOne({
+          where: { id: item.belongsTo },
+        });
+        item.dataValues.belongsTo = collection;
+      }
+
       res.send({ items });
     } catch (error) {
       console.log(error);

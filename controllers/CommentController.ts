@@ -4,6 +4,7 @@ import { createErrorMessage } from "../utils";
 
 const { Comment, User } = require("../models");
 import toTsvector from "to-tsvector";
+import { s3 } from "../config/aws";
 class CommentController {
   async create(req: express.Request, res: express.Response) {
     const user = req.user as any;
@@ -22,7 +23,14 @@ class CommentController {
       });
 
       const sender = await User.findOne({ where: { id: user.data.id } });
-
+      if (!sender.avatarURL.startsWith("https")) {
+        const params = {
+          Bucket: "itransition-coursework",
+          Key: "avatars/users/" + sender.avatarURL,
+        };
+        var promise = await s3.getSignedUrlPromise("getObject", params);
+        sender.dataValues.avatarURL = promise;
+      }
       res.send({ status: "OK", comment, user: sender });
     } catch (error) {
       console.log(error);
@@ -42,6 +50,14 @@ class CommentController {
       const comments = [];
       for (let comment of dbComments) {
         const user = await User.findOne({ where: { id: comment.user_id } });
+        if (!user.avatarURL.startsWith("https")) {
+          const params = {
+            Bucket: "itransition-coursework",
+            Key: "avatars/users/" + user.avatarURL,
+          };
+          var promise = await s3.getSignedUrlPromise("getObject", params);
+          user.dataValues.avatarURL = promise;
+        }
         comments.push({
           comment: comment.dataValues,
           user: user.dataValues,

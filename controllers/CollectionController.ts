@@ -1,9 +1,9 @@
 import express from "express";
-import { deleteFile } from "../config/aws";
+import { deleteFile, s3 } from "../config/aws";
 import { createErrorMessage, sharpImage } from "../utils";
 import { upload } from "../utils";
 
-const { Collection } = require("../models");
+const { Collection, User } = require("../models");
 
 const AWS_DESTINATION = "avatars/collections/";
 class CollectionController {
@@ -11,7 +11,7 @@ class CollectionController {
     const user = req.user as any;
     if (user) {
       try {
-        const { name, description, topics } = req.body;
+        const { name, description, topics, belongsTo } = req.body;
         let avatarURL = "default.jpeg";
         if (req.file) {
           avatarURL = await sharpImage(req.file);
@@ -22,11 +22,15 @@ class CollectionController {
           description,
           avatarURL,
           topics: JSON.parse(topics),
-          belongsTo: user.data.id,
+          belongsTo,
           items: 0,
         };
 
         const collection = await Collection.create(collectionData);
+        const user = await User.findOne({
+          where: { id: collection.belongsTo },
+        });
+        collection.dataValues.belongsTo = user;
         res.send({ status: "OK", collection });
       } catch (error) {
         console.log(error);
@@ -42,10 +46,24 @@ class CollectionController {
   async getAll(req: express.Request, res: express.Response) {
     try {
       const id = req.params.id;
+
       const collections = await Collection.findAll({
         order: [["id", "ASC"]],
         where: { belongsTo: id },
       });
+
+      for (let collection of collections) {
+        const user = await User.findOne({
+          where: { id: collection.belongsTo },
+        });
+        const params = {
+          Bucket: "itransition-coursework",
+          Key: "avatars/collections/" + collection.avatarURL,
+        };
+        var promise = await s3.getSignedUrlPromise("getObject", params);
+        collection.dataValues.avatarURL = promise;
+        collection.dataValues.belongsTo = user;
+      }
 
       res.send({ status: "OK", collections });
     } catch (error) {
@@ -62,6 +80,19 @@ class CollectionController {
         order: [["items", "DESC"]],
         limit: 10,
       });
+
+      for (let collection of collections) {
+        const user = await User.findOne({
+          where: { id: collection.belongsTo },
+        });
+        const params = {
+          Bucket: "itransition-coursework",
+          Key: "avatars/collections/" + collection.avatarURL,
+        };
+        var promise = await s3.getSignedUrlPromise("getObject", params);
+        collection.dataValues.avatarURL = promise;
+        collection.dataValues.belongsTo = user;
+      }
 
       res.send({ status: "OK", collections });
     } catch (error) {
@@ -118,7 +149,16 @@ class CollectionController {
 
         await collection.update(collectionData);
         await collection.save();
-
+        const user = await User.findOne({
+          where: { id: collection.belongsTo },
+        });
+        const params = {
+          Bucket: "itransition-coursework",
+          Key: "avatars/collections/" + collection.avatarURL,
+        };
+        var promise = await s3.getSignedUrlPromise("getObject", params);
+        collection.dataValues.avatarURL = promise;
+        collection.dataValues.belongsTo = user;
         res.send({ status: "OK", collection });
       } catch (error) {
         console.log(error);
@@ -137,7 +177,14 @@ class CollectionController {
       const collection = await Collection.findOne({
         where: { id },
       });
-
+      const user = await User.findOne({ where: { id: collection.belongsTo } });
+      collection.dataValues.belongsTo = user;
+      const params = {
+        Bucket: "itransition-coursework",
+        Key: "avatars/collections/" + collection.avatarURL,
+      };
+      var promise = await s3.getSignedUrlPromise("getObject", params);
+      collection.dataValues.avatarURL = promise;
       res.send({ status: "OK", collection });
     } catch (error) {
       console.log(error);

@@ -209,7 +209,9 @@ class ItemController {
         });
         const { values, columns } = await getCorrectValues(dbValues);
         finalColumns = finalColumns.concat(columns);
-
+        const collection = await Collection.findOne({
+          where: { id: item.belongsTo },
+        });
         items.push({
           id: item.id,
           ...Object.assign(
@@ -220,7 +222,7 @@ class ItemController {
           ),
           name: item.name,
           tags: item.tags,
-          belongsTo: item.belongsTo,
+          belongsTo: collection,
           createdAt: item.createdAt,
         });
       }
@@ -379,10 +381,32 @@ class ItemController {
         item: {
           ...dbItem.dataValues,
           info,
-          belongsTo: collection.dataValues.name,
+          belongsTo: collection,
           likes,
         },
       });
+    } catch (error) {
+      console.log(error);
+      res
+        .status(500)
+        .send(createErrorMessage("Error", "Database Error occured"));
+    }
+  }
+
+  async getLastAdded(req: express.Request, res: express.Response) {
+    try {
+      const items = await Item.findAll({
+        order: [["createdAt", "DESC"]],
+        limit: 10,
+      });
+      for (let item of items) {
+        const collection = await Collection.findOne({
+          where: { id: item.belongsTo },
+        });
+        item.dataValues.belongsTo = collection;
+      }
+
+      res.send({ items });
     } catch (error) {
       console.log(error);
       res

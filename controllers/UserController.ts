@@ -1,7 +1,7 @@
 import express from "express";
 import { deleteFile } from "../config/aws";
 import { createErrorMessage } from "../utils";
-
+import { s3 } from "../config/aws";
 const { User } = require("../models");
 
 const USER_STATUS = ["user", "admin", "block"];
@@ -27,6 +27,29 @@ class UserController {
     }
   }
 
+  async getById(req: express.Request, res: express.Response) {
+    const id = req.params.id;
+    try {
+      const user = await User.findOne({ where: { id } });
+
+      if (!user.avatarURL.startsWith("https")) {
+        const params = {
+          Bucket: "itransition-coursework",
+          Key: "avatars/users/" + user.avatarURL,
+        };
+        var promise = await s3.getSignedUrlPromise("getObject", params);
+        user.dataValues.avatarURL = promise;
+      }
+
+      res.send({ user });
+    } catch (error) {
+      console.log(error);
+      res
+        .status(500)
+        .send(createErrorMessage("Error", "Database Error occured"));
+    }
+  }
+
   async delete(req: express.Request, res: express.Response) {
     const id = req.params.id;
     try {
@@ -48,6 +71,17 @@ class UserController {
   async getAll(req: express.Request, res: express.Response) {
     try {
       const users = await User.findAll({ order: [["id", "ASC"]] });
+      for (let user of users) {
+        if (!user.avatarURL.startsWith("https")) {
+          const params = {
+            Bucket: "itransition-coursework",
+            Key: "avatars/users/" + user.avatarURL,
+          };
+          var promise = await s3.getSignedUrlPromise("getObject", params);
+          user.dataValues.avatarURL = promise;
+        }
+      }
+
       res.send({ status: "OK", users });
     } catch (error) {
       console.log(error);
